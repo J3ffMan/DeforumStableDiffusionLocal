@@ -82,11 +82,7 @@ def load_model(root, load_on_run_all=True, check_sha256=True):
     except:
         ipy = 'could not get_ipython'
 
-    if 'google.colab' in str(ipy):
-        path_extend = "deforum-stable-diffusion"
-    else:
-        path_extend = ""
-
+    path_extend = "deforum-stable-diffusion" if 'google.colab' in ipy else ""
     model_map = {
         "v2-1_768-ema-pruned.ckpt": {
             'sha256': 'ad2a33c361c1f593c4a1fb32ea81afce2b5bb7d1983c6b94793a26a3b54b08a0',
@@ -179,7 +175,7 @@ def load_model(root, load_on_run_all=True, check_sha256=True):
         print(f"Warning: {ckpt_config_path} does not exist.")
         ckpt_config_path = os.path.join(path_extend,"configs",root.model_config)
         print(f"Using {ckpt_config_path} instead.")
-        
+
     ckpt_config_path = os.path.abspath(ckpt_config_path)
 
     # checkpoint path or download
@@ -193,7 +189,7 @@ def load_model(root, load_on_run_all=True, check_sha256=True):
     else:
         print(f"Please download model checkpoint and place in {os.path.join(root.models_path, root.model_checkpoint)}")
         ckpt_valid = False
-        
+
     print(f"config_path: {ckpt_config_path}")
     print(f"ckpt_path: {ckpt_path}")
 
@@ -216,7 +212,7 @@ def load_model(root, load_on_run_all=True, check_sha256=True):
 
     def load_model_from_config(config, ckpt, verbose=False, device='cuda', print_flag=False):
         map_location = "cuda" # ["cpu", "cuda"]
-        print(f"..loading model")
+        print("..loading model")
         _ , extension = os.path.splitext(ckpt)
         if extension.lower() == ".safetensors":
             import safetensors.torch
@@ -224,9 +220,8 @@ def load_model(root, load_on_run_all=True, check_sha256=True):
         else:
             pl_sd = torch.load(ckpt, map_location=map_location)
             sd = pl_sd["state_dict"]
-            if "global_step" in pl_sd:
-                if print_flag:
-                    print(f"Global Step: {pl_sd['global_step']}")
+            if "global_step" in pl_sd and print_flag:
+                print(f"Global Step: {pl_sd['global_step']}")
         torch.set_default_dtype(torch.float16)
         model = instantiate_from_config(config.model)
         torch.set_default_dtype(torch.float32)
@@ -260,26 +255,25 @@ def get_model_output_paths(root):
     models_path = root.models_path
     output_path = root.output_path
 
-    #@markdown **Google Drive Path Variables (Optional)**
-    
-    force_remount = False
-
     try:
         ipy = get_ipython()
     except:
         ipy = 'could not get_ipython'
 
-    if 'google.colab' in str(ipy):
-        if root.mount_google_drive:
-            from google.colab import drive # type: ignore
-            try:
-                drive_path = "/content/drive"
-                drive.mount(drive_path,force_remount=force_remount)
-                models_path = root.models_path_gdrive
-                output_path = root.output_path_gdrive
-            except:
-                print("..error mounting drive or with drive path variables")
-                print("..reverting to default path variables")
+    if 'google.colab' in ipy and root.mount_google_drive:
+        from google.colab import drive # type: ignore
+        #@markdown **Google Drive Path Variables (Optional)**
+
+        force_remount = False
+
+        try:
+            drive_path = "/content/drive"
+            drive.mount(drive_path,force_remount=force_remount)
+            models_path = root.models_path_gdrive
+            output_path = root.output_path_gdrive
+        except:
+            print("..error mounting drive or with drive path variables")
+            print("..reverting to default path variables")
 
     models_path = os.path.abspath(models_path)
     output_path = os.path.abspath(output_path)

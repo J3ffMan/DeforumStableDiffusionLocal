@@ -33,7 +33,7 @@ if setup_environment:
         running = subprocess.run(process,stdout=subprocess.PIPE).stdout.decode('utf-8')
         if print_subprocess:
             print(running)
-    
+
     with open('deforum-stable-diffusion/src/k_diffusion/__init__.py', 'w') as f:
             f.write('')
     sys.path.extend([
@@ -46,12 +46,6 @@ if setup_environment:
 
         print("..installing xformers")
 
-        # all_process = [['pip', 'install', 'triton==2.0.0.dev20220701']]
-        # for process in all_process:
-            # running = subprocess.run(process,stdout=subprocess.PIPE).stdout.decode('utf-8')
-            # if print_subprocess:
-                # print(running)
-                
         v_card_name = subprocess.run(['nvidia-smi', '--query-gpu=name', '--format=csv,noheader'], stdout=subprocess.PIPE).stdout.decode('utf-8')
         if 't4' in v_card_name.lower():
             name_to_download = 'T4'
@@ -63,10 +57,12 @@ if setup_environment:
             name_to_download = 'P100'
         else:
             name_to_download = ''
-            print(v_card_name + ' Searching xformers flash attention wheel file for deforum!')
+            print(
+                f'{v_card_name} Searching xformers flash attention wheel file for deforum!'
+            )
         if name_to_download != '':
             x_ver = 'xformers-0.0.13.dev0-py3-none-any.whl'
-            x_link = 'https://github.com/TheLastBen/fast-stable-diffusion/raw/main/precompiled/' + name_to_download + '/' + x_ver
+            x_link = f'https://github.com/TheLastBen/fast-stable-diffusion/raw/main/precompiled/{name_to_download}/{x_ver}'
 
             all_process = [
                 ['wget', x_link],
@@ -74,15 +70,15 @@ if setup_environment:
             ]
         else:
             x_ver = 'xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl'
-            x_link = 'https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/' + x_ver
+            x_link = f'https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/{x_ver}'
 
             all_process = [
                 ['pip', 'install', x_link]
             ]
 
-    
-               # ['mv', 'deforum-stable-diffusion/src/ldm/modules/attention.py', 'deforum-stable-diffusion/src/ldm/modules/attention_backup.py'],
-               # ['mv', 'deforum-stable-diffusion/src/ldm/modules/attention_xformers.py', 'deforum-stable-diffusion/src/ldm/modules/attention.py']
+            
+                       # ['mv', 'deforum-stable-diffusion/src/ldm/modules/attention.py', 'deforum-stable-diffusion/src/ldm/modules/attention_backup.py'],
+                       # ['mv', 'deforum-stable-diffusion/src/ldm/modules/attention_xformers.py', 'deforum-stable-diffusion/src/ldm/modules/attention.py']
 
         for process in all_process:
             running = subprocess.run(process,stdout=subprocess.PIPE).stdout.decode('utf-8')
