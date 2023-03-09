@@ -135,7 +135,7 @@ def main():
             sigma_schedule = "0: (1.0)"#@param {type:"string"}
             amount_schedule = "0: (0.2)"#@param {type:"string"}
             threshold_schedule = "0: (0.0)"#@param {type:"string"}
-            
+
             #@markdown ####**Coherence:**
             color_coherence = master_args["color_coherence"] #@param ['None', 'Match Frame 0 HSV', 'Match Frame 0 LAB', 'Match Frame 0 RGB'] {type:'string'}
             diffusion_cadence = master_args["diffusion_cadence"] #@param ['1','2','3','4','5','6','7','8'] {type:'string'}
@@ -173,7 +173,7 @@ def main():
             #@markdown ####**Interpolation:**
             interpolate_key_frames = master_args["interpolate_key_frames"] #@param {type:"boolean"}
             interpolate_x_frames = master_args["interpolate_x_frames"] #@param {type:"number"}
-            
+
             #@markdown ####**Resume Animation:**
             resume_from_timestring = master_args["resume_from_timestring"] #@param {type:"boolean"}
             resume_timestring = master_args["resume_timestring"] #@param {type:"string"}
@@ -226,7 +226,7 @@ def main():
             #@markdown ####**Interpolation:**
             interpolate_key_frames = False #@param {type:"boolean"}
             interpolate_x_frames = 4 #@param {type:"number"}
-            
+
             #@markdown ####**Resume Animation:**
             resume_from_timestring = False #@param {type:"boolean"}
             resume_timestring = "20220829210106" #@param {type:"string"}
@@ -280,14 +280,14 @@ def main():
         n_batch = master_args["n_batch"]  #@param
         batch_name = master_args["batch_name"] #@param {type:"string"}
         filename_format = master_args["filename_format"] #@param ["{timestring}_{index}_{seed}.png","{timestring}_{index}_{prompt}.png"]
-        
+
         seed_behavior = "iter" #@param ["iter","fixed","random","ladder","alternate"]
         seed_iter_N = 1 #@param {type:'integer'}
 
         make_grid = False #@param {type:"boolean"}
         grid_rows = 2 #@param 
         outdir = get_output_folder(root.output_path, batch_name)
-        
+
         #@markdown **Init Settings**
         use_init = master_args["use_init"] #@param {type:"boolean"}
         strength = master_args["strength"] #@param {type:"number"}
@@ -331,7 +331,7 @@ def main():
         init_mse_image = master_args["init_mse_image"] #@param {type:"string"}
 
         blue_scale = master_args["blue_scale"] #@param {type:"number"}
-        
+
         #@markdown **Conditional Gradient Settings**
         gradient_wrt = master_args["gradient_wrt"] #@param ["x", "x0_pred"]
         gradient_add_to = master_args["gradient_add_to"] #@param ["cond", "uncond", "both"]
@@ -385,7 +385,7 @@ def main():
     if not args.use_init:
         args.init_image = None
     if args.sampler == 'plms' and (args.use_init or anim_args.animation_mode != 'None'):
-        print(f"Init images aren't supported with PLMS yet, switching to KLMS")
+        print("Init images aren't supported with PLMS yet, switching to KLMS")
         args.sampler = 'klms'
     if args.sampler != 'ddim':
         args.ddim_eta = 0
@@ -400,7 +400,7 @@ def main():
     torch.cuda.empty_cache()
 
     # dispatch to appropriate renderer
-    if anim_args.animation_mode == '2D' or anim_args.animation_mode == '3D':
+    if anim_args.animation_mode in ['2D', '3D']:
         render_animation(args, anim_args, animation_prompts, root)
     elif anim_args.animation_mode == 'Video Input':
         render_input_video(args, anim_args, animation_prompts, root)
@@ -419,7 +419,7 @@ def main():
     path_name_modifier = "x0_pred" #@param ["x0_pred","x"]
     make_gif = False
 
-    if skip_video_for_run_all == True or opt.enable_animation_mode == False:
+    if skip_video_for_run_all or opt.enable_animation_mode == False:
         print('Skipping video creation')
     else:
         import os
@@ -469,19 +469,19 @@ def main():
             raise RuntimeError(stderr)
 
         mp4 = open(mp4_path,'rb').read()
-        data_url = "data:video/mp4;base64," + b64encode(mp4).decode()
+        data_url = f"data:video/mp4;base64,{b64encode(mp4).decode()}"
         display.display(display.HTML(f'<video controls loop><source src="{data_url}" type="video/mp4"></video>') )
-        
+
         if make_gif:
-             gif_path = os.path.splitext(mp4_path)[0]+'.gif'
-             cmd_gif = [
-                 'ffmpeg',
-                 '-y',
-                 '-i', mp4_path,
-                 '-r', str(fps),
-                 gif_path
-             ]
-             process_gif = subprocess.Popen(cmd_gif, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            gif_path = f'{os.path.splitext(mp4_path)[0]}.gif'
+            cmd_gif = [
+                'ffmpeg',
+                '-y',
+                '-i', mp4_path,
+                '-r', str(fps),
+                gif_path
+            ]
+            process_gif = subprocess.Popen(cmd_gif, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
 if __name__ == "__main__":

@@ -37,21 +37,20 @@ import subprocess, time, gc, os, sys
 
 def setup_environment():
     start_time = time.time()
-    print_subprocess = False
-    use_xformers_for_colab = True
     try:
         ipy = get_ipython()
     except:
         ipy = 'could not get_ipython'
-    if 'google.colab' in str(ipy):
+    if 'google.colab' in ipy:
         print("..setting up environment")
-        
+
         all_process = [
             ['pip', 'install', 'torch==1.12.1+cu113', 'torchvision==0.13.1+cu113', '--extra-index-url', 'https://download.pytorch.org/whl/cu113'],
             ['pip', 'install', 'omegaconf==2.2.3', 'einops==0.4.1', 'pytorch-lightning==1.7.4', 'torchmetrics==0.9.3', 'torchtext==0.13.1', 'transformers==4.21.2', 'safetensors', 'kornia==0.6.7'],
             ['git', 'clone', 'https://github.com/deforum-art/deforum-stable-diffusion'],
             ['pip', 'install', 'accelerate', 'ftfy', 'jsonmerge', 'matplotlib', 'resize-right', 'timm', 'torchdiffeq','scikit-learn','torchsde','open-clip-torch','numpngw'],
         ]
+        print_subprocess = False
         for process in all_process:
             running = subprocess.run(process,stdout=subprocess.PIPE).stdout.decode('utf-8')
             if print_subprocess:
@@ -62,6 +61,7 @@ def setup_environment():
             'deforum-stable-diffusion/',
             'deforum-stable-diffusion/src',
         ])
+        use_xformers_for_colab = True
         if use_xformers_for_colab:
 
             print("..installing xformers")
@@ -92,14 +92,16 @@ def setup_environment():
             elif 'rtx 5000' in v_card_name.lower():
                 name_to_download = 'Non-Colab/Paperspace/RTX 5000'
             else:
-                print(v_card_name + ' is currently not supported with xformers flash attention in deforum!')
+                print(
+                    f'{v_card_name} is currently not supported with xformers flash attention in deforum!'
+                )
 
             if 'Non-Colab' in name_to_download:
                 x_ver = 'xformers-0.0.14.dev0-cp39-cp39-linux_x86_64.whl'
             else:
                 x_ver = 'xformers-0.0.13.dev0-py3-none-any.whl'
 
-            x_link = 'https://github.com/TheLastBen/fast-stable-diffusion/raw/main/precompiled/' + name_to_download + '/' + x_ver
+            x_link = f'https://github.com/TheLastBen/fast-stable-diffusion/raw/main/precompiled/{name_to_download}/{x_ver}'
 
             all_process = [
                 ['wget', '--no-verbose', '--no-clobber', x_link],
@@ -408,15 +410,15 @@ args.strength = max(0.0, min(1.0, args.strength))
 # Load clip model if using clip guidance
 if (args.clip_scale > 0) or (args.aesthetics_scale > 0):
     root.clip_model = clip.load(args.clip_name, jit=False)[0].eval().requires_grad_(False).to(root.device)
-    if (args.aesthetics_scale > 0):
-        root.aesthetics_model = load_aesthetics_model(args, root)
+if (args.aesthetics_scale > 0):
+    root.aesthetics_model = load_aesthetics_model(args, root)
 
 if args.seed == -1:
     args.seed = random.randint(0, 2**32 - 1)
 if not args.use_init:
     args.init_image = None
 if args.sampler == 'plms' and (args.use_init or anim_args.animation_mode != 'None'):
-    print(f"Init images aren't supported with PLMS yet, switching to KLMS")
+    print("Init images aren't supported with PLMS yet, switching to KLMS")
     args.sampler = 'klms'
 if args.sampler != 'ddim':
     args.ddim_eta = 0
@@ -431,7 +433,7 @@ gc.collect()
 torch.cuda.empty_cache()
 
 # dispatch to appropriate renderer
-if anim_args.animation_mode == '2D' or anim_args.animation_mode == '3D':
+if anim_args.animation_mode in ['2D', '3D']:
     render_animation(args, anim_args, animation_prompts, root)
 elif anim_args.animation_mode == 'Video Input':
     render_input_video(args, anim_args, animation_prompts, root)
@@ -464,7 +466,7 @@ path_name_modifier = "x0_pred" #@param ["x0_pred","x"]
 make_gif = False
 bitdepth_extension = "exr" if args.bit_depth_output == 32 else "png"
 
-if skip_video_for_run_all == True:
+if skip_video_for_run_all:
     print('Skipping video creation, uncheck skip_video_for_run_all if you want to run it')
 else:
     import os
@@ -475,19 +477,18 @@ else:
 
     if use_manual_settings:
         max_frames = "200" #@param {type:"string"}
-    else:
-        if render_steps: # render steps from a single image
-            fname = f"{path_name_modifier}_%05d.png"
-            all_step_dirs = [os.path.join(args.outdir, d) for d in os.listdir(args.outdir) if os.path.isdir(os.path.join(args.outdir,d))]
-            newest_dir = max(all_step_dirs, key=os.path.getmtime)
-            image_path = os.path.join(newest_dir, fname)
-            print(f"Reading images from {image_path}")
-            mp4_path = os.path.join(newest_dir, f"{args.timestring}_{path_name_modifier}.mp4")
-            max_frames = str(args.steps)
-        else: # render images for a video
-            image_path = os.path.join(args.outdir, f"{args.timestring}_%05d.{bitdepth_extension}")
-            mp4_path = os.path.join(args.outdir, f"{args.timestring}.mp4")
-            max_frames = str(anim_args.max_frames)
+    elif render_steps: # render steps from a single image
+        all_step_dirs = [os.path.join(args.outdir, d) for d in os.listdir(args.outdir) if os.path.isdir(os.path.join(args.outdir,d))]
+        newest_dir = max(all_step_dirs, key=os.path.getmtime)
+        fname = f"{path_name_modifier}_%05d.png"
+        image_path = os.path.join(newest_dir, fname)
+        print(f"Reading images from {image_path}")
+        mp4_path = os.path.join(newest_dir, f"{args.timestring}_{path_name_modifier}.mp4")
+        max_frames = str(args.steps)
+    else: # render images for a video
+        image_path = os.path.join(args.outdir, f"{args.timestring}_%05d.{bitdepth_extension}")
+        mp4_path = os.path.join(args.outdir, f"{args.timestring}.mp4")
+        max_frames = str(anim_args.max_frames)
 
     # make video
     cmd = [
@@ -514,19 +515,19 @@ else:
         raise RuntimeError(stderr)
 
     mp4 = open(mp4_path,'rb').read()
-    data_url = "data:video/mp4;base64," + b64encode(mp4).decode()
+    data_url = f"data:video/mp4;base64,{b64encode(mp4).decode()}"
     display.display(display.HTML(f'<video controls loop><source src="{data_url}" type="video/mp4"></video>') )
-    
+
     if make_gif:
-         gif_path = os.path.splitext(mp4_path)[0]+'.gif'
-         cmd_gif = [
-             'ffmpeg',
-             '-y',
-             '-i', mp4_path,
-             '-r', str(fps),
-             gif_path
-         ]
-         process_gif = subprocess.Popen(cmd_gif, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        gif_path = f'{os.path.splitext(mp4_path)[0]}.gif'
+        cmd_gif = [
+            'ffmpeg',
+            '-y',
+            '-i', mp4_path,
+            '-r', str(fps),
+            gif_path
+        ]
+        process_gif = subprocess.Popen(cmd_gif, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 # %%
 # !! {"metadata":{
@@ -535,7 +536,7 @@ else:
 # !! }}
 skip_disconnect_for_run_all = True #@param {type: 'boolean'}
 
-if skip_disconnect_for_run_all == True:
+if skip_disconnect_for_run_all:
     print('Skipping disconnect, uncheck skip_disconnect_for_run_all if you want to run it')
 else:
     from google.colab import runtime
